@@ -35,6 +35,7 @@ fn main() -> io::Result<()> {
     let mut sorted_file_extension_count = Vec::new();
     let mut framework_names = Vec::new();
     let mut files_without_extensions = Vec::new();
+    let mut top_large_files = Vec::new();
 
     let mut file_extension_map: HashMap<String, FileExtensionSummary> = HashMap::new();
     while !pending_dirs.is_empty() {
@@ -69,12 +70,13 @@ fn main() -> io::Result<()> {
                 summary.count += 1;
                 summary.total_size += file_size;
 
+                let relative_path = path
+                    .to_str()
+                    .unwrap_or_default()
+                    .strip_prefix(dir_str)
+                    .unwrap_or_default();
+
                 if file_ext.is_empty() {
-                    let relative_path = path
-                        .to_str()
-                        .unwrap_or_default()
-                        .strip_prefix(dir_str)
-                        .unwrap_or_default();
                     files_without_extensions.push(FileBasicInfo {
                         name: String::from(
                             path.file_name().and_then(OsStr::to_str).unwrap_or_default(),
@@ -83,6 +85,15 @@ fn main() -> io::Result<()> {
                         path: String::from(relative_path),
                     });
                 }
+
+                // top large files
+                top_large_files.push(FileBasicInfo {
+                    name: String::from(
+                        path.file_name().and_then(OsStr::to_str).unwrap_or_default(),
+                    ),
+                    size: file_size,
+                    path: String::from(relative_path),
+                })
             }
         }
     }
@@ -101,6 +112,11 @@ fn main() -> io::Result<()> {
         }
     }
 
+    // top large files
+    top_large_files.sort_by(|a,b| b.size.partial_cmp(&a.size).unwrap());
+    top_large_files.drain(10..);
+
+
     println!("Directory Count = {}", dir_count);
     println!("File Count = {}", file_count);
     println!("Total File Size = {}", total_file_size);
@@ -109,6 +125,7 @@ fn main() -> io::Result<()> {
         println!("Framework Names = {:#?}", framework_names);
     }
     println!("Files Without Extension = {:#?}", files_without_extensions);
+    println!("Top Large Files = {:#?}", top_large_files);
 
     Ok(())
 }
