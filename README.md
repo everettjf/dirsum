@@ -4,6 +4,16 @@ Get formatted summary for specified directory.
 
 [Crate](https://crates.io/crates/dirsum)
 
+
+# install
+
+```
+cargo install dirsum
+```
+
+> for how to install cargo :
+> curl https://sh.rustup.rs -sSf | sh
+
 # usage
 
 ```
