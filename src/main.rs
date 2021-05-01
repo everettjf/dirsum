@@ -69,6 +69,7 @@ fn main() -> io::Result<()> {
     let mut total_file_size: u64 = 0;
     let mut sorted_file_extension_count = Vec::new();
     let mut framework_items = Vec::new();
+    let mut plugin_items = Vec::new();
     let mut files_without_extensions = Vec::new();
     let mut top_large_files = Vec::new();
 
@@ -163,6 +164,33 @@ fn main() -> io::Result<()> {
         }
     }
 
+    // plugins
+    let plugin_path = dir_path.join("Plugins");
+    if plugin_path.exists() && plugin_path.is_dir() {
+        for entry in fs::read_dir(plugin_path)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if !path.is_dir() {
+                continue;
+            }
+
+            let dir_name = entry.file_name().into_string().unwrap_or_default();
+            let dir_size = compute_directory_size(path.to_str().unwrap());
+            let relative_path = path
+                .to_str()
+                .unwrap_or_default()
+                .strip_prefix(dir_str)
+                .unwrap_or_default();
+            plugin_items.push(DirBasicInfo {
+                name: dir_name,
+                size: dir_size,
+                path: String::from(relative_path),
+            });
+        }
+    }
+
+
     // top large files
     top_large_files.sort_by(|a, b| b.size.partial_cmp(&a.size).unwrap());
     top_large_files.drain(10..);
@@ -171,11 +199,14 @@ fn main() -> io::Result<()> {
     println!("File Count = {}", file_count);
     println!("Total File Size = {}", total_file_size);
     println!("File Extensions Count = {:#?}", sorted_file_extension_count);
+    println!("Files Without Extension = {:#?}", files_without_extensions);
+    println!("Top Large Files = {:#?}", top_large_files);
     if !framework_items.is_empty() {
         println!("Framework Items = {:#?}", framework_items);
     }
-    println!("Files Without Extension = {:#?}", files_without_extensions);
-    println!("Top Large Files = {:#?}", top_large_files);
+    if !plugin_items.is_empty() {
+        println!("Plugin Items = {:#?}", plugin_items);
+    }
 
     Ok(())
 }
