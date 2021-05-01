@@ -19,6 +19,41 @@ struct FileBasicInfo {
     size: u64,
     path: String,
 }
+#[derive(Debug)]
+struct DirBasicInfo {
+    name: String,
+    size: u64,
+    path: String,
+}
+
+fn compute_directory_size(dir_str: &str) -> u64 {
+    let dir_path = Path::new(dir_str);
+    let mut pending_dirs: LinkedList<String> = LinkedList::new();
+    if dir_path.is_dir() {
+        pending_dirs.push_back(String::from(dir_path.to_str().unwrap()));
+    }
+    let mut total_file_size: u64 = 0;
+
+    while !pending_dirs.is_empty() {
+        let current_dir = pending_dirs.pop_back().unwrap();
+
+        // read dir
+        let entries = fs::read_dir(current_dir).unwrap();
+        for entry in entries {
+            let entry = entry.unwrap();
+
+            let path = entry.path();
+            if path.is_dir() {
+                pending_dirs.push_back(String::from(path.to_str().unwrap()));
+            } else {
+                let file_size = path.as_path().size_on_disk().unwrap_or_default();
+                total_file_size += file_size;
+            }
+        }
+    }
+
+    total_file_size
+}
 
 fn main() -> io::Result<()> {
     let dir_str = "/Users/gipyzarc/sec/dump/com.tencent.xin/Payload/WeChat.app";
@@ -33,7 +68,7 @@ fn main() -> io::Result<()> {
     let mut file_count: u32 = 0;
     let mut total_file_size: u64 = 0;
     let mut sorted_file_extension_count = Vec::new();
-    let mut framework_names = Vec::new();
+    let mut framework_items = Vec::new();
     let mut files_without_extensions = Vec::new();
     let mut top_large_files = Vec::new();
 
@@ -107,22 +142,37 @@ fn main() -> io::Result<()> {
     if framework_path.exists() && framework_path.is_dir() {
         for entry in fs::read_dir(framework_path)? {
             let entry = entry?;
-            let file_name = entry.file_name().into_string().unwrap_or_default();
-            framework_names.push(file_name);
+            let path = entry.path();
+
+            if !path.is_dir() {
+                continue;
+            }
+
+            let dir_name = entry.file_name().into_string().unwrap_or_default();
+            let dir_size = compute_directory_size(path.to_str().unwrap());
+            let relative_path = path
+                .to_str()
+                .unwrap_or_default()
+                .strip_prefix(dir_str)
+                .unwrap_or_default();
+            framework_items.push(DirBasicInfo {
+                name: dir_name,
+                size: dir_size,
+                path: String::from(relative_path),
+            });
         }
     }
 
     // top large files
-    top_large_files.sort_by(|a,b| b.size.partial_cmp(&a.size).unwrap());
+    top_large_files.sort_by(|a, b| b.size.partial_cmp(&a.size).unwrap());
     top_large_files.drain(10..);
-
 
     println!("Directory Count = {}", dir_count);
     println!("File Count = {}", file_count);
     println!("Total File Size = {}", total_file_size);
     println!("File Extensions Count = {:#?}", sorted_file_extension_count);
-    if !framework_names.is_empty() {
-        println!("Framework Names = {:#?}", framework_names);
+    if !framework_items.is_empty() {
+        println!("Framework Items = {:#?}", framework_items);
     }
     println!("Files Without Extension = {:#?}", files_without_extensions);
     println!("Top Large Files = {:#?}", top_large_files);
