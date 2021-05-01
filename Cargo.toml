@@ -1,10 +1,11 @@
 [package]
 name = "dirsum"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["everettjf <everettjf@live.com>"]
 edition = "2018"
 description = "Print directory summary with specified format"
 license = "MIT"
+repository = "https://github.com/everettjf/dirsum"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
