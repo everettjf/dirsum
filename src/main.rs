@@ -1,10 +1,10 @@
-use std::io;
-use std::fs;
-use std::path::Path;
+use filesize::PathExt;
+use std::collections::HashMap;
 use std::collections::LinkedList;
 use std::ffi::OsStr;
-use std::collections::HashMap;
-use filesize::PathExt;
+use std::fs;
+use std::io;
+use std::path::Path;
 
 #[derive(Debug)]
 struct FileExtensionSummary {
@@ -24,7 +24,7 @@ fn main() -> io::Result<()> {
     let dir_str = "/Users/gipyzarc/sec/dump/com.tencent.xin/Payload/WeChat.app";
     let dir_path = Path::new(dir_str);
 
-    let mut pending_dirs:LinkedList<String> = LinkedList::new();
+    let mut pending_dirs: LinkedList<String> = LinkedList::new();
     if dir_path.is_dir() {
         pending_dirs.push_back(String::from(dir_path.to_str().unwrap()));
     }
@@ -35,7 +35,6 @@ fn main() -> io::Result<()> {
     let mut sorted_file_extension_count = Vec::new();
     let mut framework_names = Vec::new();
     let mut files_without_extensions = Vec::new();
-
 
     let mut file_extension_map: HashMap<String, FileExtensionSummary> = HashMap::new();
     while !pending_dirs.is_empty() {
@@ -52,24 +51,34 @@ fn main() -> io::Result<()> {
                 pending_dirs.push_back(String::from(path.to_str().unwrap()));
             } else {
                 file_count += 1;
-                let file_ext = path.extension().and_then(OsStr::to_str).unwrap_or_else(|| "");
+                let file_ext = path
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .unwrap_or_else(|| "");
 
                 let file_size = path.as_path().size_on_disk().unwrap_or_default();
                 total_file_size += file_size;
 
-                let summary = file_extension_map.entry(String::from(file_ext))
-                    .or_insert(FileExtensionSummary {
+                let summary = file_extension_map.entry(String::from(file_ext)).or_insert(
+                    FileExtensionSummary {
                         extension: String::from(file_ext),
                         count: 0,
                         total_size: 0,
-                    });
+                    },
+                );
                 summary.count += 1;
                 summary.total_size += file_size;
 
                 if file_ext.is_empty() {
-                    let relative_path = path.to_str().unwrap_or_default().strip_prefix(dir_str).unwrap_or_default();
+                    let relative_path = path
+                        .to_str()
+                        .unwrap_or_default()
+                        .strip_prefix(dir_str)
+                        .unwrap_or_default();
                     files_without_extensions.push(FileBasicInfo {
-                        name: String::from(path.file_name().and_then(OsStr::to_str).unwrap_or_default()),
+                        name: String::from(
+                            path.file_name().and_then(OsStr::to_str).unwrap_or_default(),
+                        ),
                         size: file_size,
                         path: String::from(relative_path),
                     });
@@ -80,9 +89,7 @@ fn main() -> io::Result<()> {
     for (_, summary) in file_extension_map.into_iter() {
         sorted_file_extension_count.push(summary);
     }
-    sorted_file_extension_count.sort_by(|a,b| {
-        b.count.partial_cmp(&a.count).unwrap() 
-    });
+    sorted_file_extension_count.sort_by(|a, b| b.count.partial_cmp(&a.count).unwrap());
 
     // frameworks
     let framework_path = dir_path.join("Frameworks");
@@ -93,7 +100,6 @@ fn main() -> io::Result<()> {
             framework_names.push(file_name);
         }
     }
-
 
     println!("Directory Count = {}", dir_count);
     println!("File Count = {}", file_count);
