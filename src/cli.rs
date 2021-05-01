@@ -11,5 +11,5 @@ pub struct Opt {
   pub path: PathBuf,
 
   #[structopt(short, long, help("Print with json format"))]
-  pub json: Option<bool>,
+  pub json: bool,
 }
